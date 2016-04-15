@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns = "http://www.w3.org/1999/xhtml">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<!-- polyfill -->
+	<script src="inc/shim/Base64.js" type="text/javascript"></script>
+	<script src="inc/shim/Base64binary.js" type="text/javascript"></script>
+	<script src="inc/shim/WebAudioAPI.js" type="text/javascript"></script>
+	<!-- midi.js package -->
+	<script src="js/midi/audioDetect.js" type="text/javascript"></script>
+	<script src="js/midi/gm.js" type="text/javascript"></script>
+	<script src="js/midi/loader.js" type="text/javascript"></script>
+	<script src="js/midi/plugin.audiotag.js" type="text/javascript"></script>
+	<script src="js/midi/plugin.webaudio.js" type="text/javascript"></script>
+	<script src="js/midi/plugin.webmidi.js" type="text/javascript"></script>
+	<!-- utils -->
+	<script src="js/util/dom_request_xhr.js" type="text/javascript"></script>
+	<script src="js/util/dom_request_script.js" type="text/javascript"></script>
+	<script src="js/d3.min.js"></script>
+</head>
+<body>
+
+<style>
+
+.line {
+  fill: none;
+  stroke: #000;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+</style>
+
+<svg width="960" height="500">
+  <rect style="fill:#fff;" width="100%" height="100%"></rect>
+</svg>
+
+<script>
+
+var activeLine;
+
+var renderPath = d3.svg.line()
+    .x(function(d) { return d[0]; })
+    .y(function(d) { return d[1]; })
+    .interpolate("basis");
+
+var svg = d3.select("svg")
+    .call(d3.behavior.drag()
+      .on("dragstart", dragstarted)
+      .on("drag", dragged)
+      .on("dragend", dragended));
+
+function dragstarted() {
+  activeLine = svg.append("path").datum([]).attr("class", "line");
+}
+
+
+var notesscale = d3.scale.ordinal()
+    .domain(d3.range(0,960))
+    .range(d3.range(0,127));
+
+function dragged() {
+  var note = notesscale(d3.mouse(this)[0]);
+  play_note(note)
+  activeLine.datum().push(d3.mouse(this));
+  activeLine.attr("d", renderPath);
+}
+
+function dragended() {
+  activeLine = null;
+}
+
+window.onload = function (){
+	MIDI.loadPlugin({
+		soundfontUrl: "./soundfont/",
+		instrument: "acoustic_grand_piano",
+		onprogress: function(state, progress) {
+			console.log(state, progress);
+		},
+		onsuccess: function() {
+			player = MIDI.Player;
+		}
+	});
+};
+
+play_note = function(note) {
+	var note = note
+	var delay = 0; // play one note every quarter second
+	//var note = 100; // the MIDI note
+	var velocity = 127; // how hard the note hits
+	// play the note
+	MIDI.setVolume(0, 127);
+	MIDI.noteOn(0, note, velocity, delay);
+	MIDI.noteOff(0, note, delay + 0.75);
+}
+</script>
+</body>
+</html>
